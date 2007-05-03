@@ -12,7 +12,7 @@ mark-yank-urls
     apt-get install rxvt xclip git
     git clone git://tachyon.jukie.net/urxvt.git/ urxvt.git
     mkdir ~/.urxvt
-    cp urxvt.git ~/.urxvt
+    cp urxvt.git/mark-yank-urls ~/.urxvt
 
     cat > ~/.Xdefaults <<END
 URxvt.keysym.M-u: perl:mark-yank-urls:activate_mark_mode
