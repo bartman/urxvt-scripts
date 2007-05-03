@@ -169,7 +169,8 @@ sub do_copy {
     my $line = $term->line ($url_selected);
     my $text = substr($line->t, $h{col_from}, $h{col_to} - $h{col_from} + 1);
 
-    system ("echo $text | xclip -i");
+    $text =~ s/\(["|><&()]\)/\\$1/;
+    system ("echo -n \"$text\" | xclip -i");
 }
 
 sub move_highlight {
