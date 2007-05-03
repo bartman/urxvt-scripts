@@ -98,7 +98,7 @@ sub on_scroll_back {
 sub on_user_command {
     my ($term, $cmd) = @_;
 
-    $cmd eq "mark-urls2:activate_mark_mode"
+    $cmd eq "mark-yank-urls:activate_mark_mode"
         and activate_mark_mode($term);
 
     ()
