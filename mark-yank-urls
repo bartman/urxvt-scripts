@@ -31,6 +31,8 @@ sub on_line_update {
     my $line = $term->line ($row);
     my $text = $line->t;
 
+    undef $url_db[$row];
+
     # find all urls (if any)
     while ($text =~ /$url/g) {
         my $rend = $line->r;
@@ -41,8 +43,6 @@ sub on_line_update {
         my %h = ( 'col_from' => $-[1], 
                   'col_to' => $+[1] - 1 );
         $url_db[$row] = \%h;
-
-        print "($row,".$-[1]."-".($+[1] - 1)."):  $text\n";
 
         # mark all characters as underlined. we _must_ not toggle underline,
         # as we might get called on an already-marked url.
@@ -81,8 +81,6 @@ sub on_button_release {
 
 sub on_scroll_back {
     my ($term, $lines, $saved) = @_;
-
-    print "scroll $lines $saved\n";
 
     if ($lines > $url_selected && $url_selected>0) {
         move_highlight ($term, 1);
@@ -124,14 +122,7 @@ sub on_key_release {
     if ($mark_mode_active) {
         my $ch = chr($keysym);
 
-        print "release $keysym ".
-            "($ch) ".
-            ($mod{control} ? "+control " : "").
-            ($mod{shift} ? "+shift " : "").
-            "\n";
-
         if ($keysym == 65307) {                     # <esc>
-            print "deactivate\n";
             $mark_mode_active = 0;
             do_highlight ($term, 0);
             $term->want_refresh;
@@ -139,7 +130,6 @@ sub on_key_release {
             return 1;
 
         } elsif ($keysym == 65293) {                # <enter>
-            print "copy\n";
             do_copy ($term);
             $mark_mode_active = 0;
             do_highlight ($term, 0);
@@ -158,8 +148,6 @@ sub on_key_release {
         } elsif ($mod{control} && (($ch eq 'n') || ($ch eq 'p'))) {
                                                     # ^n and ^p to cycle list
             my $dir = ($ch eq 'n') ? 1 : -1;
-            print "move $dir ($url_selected)\n";
-
             move_highlight ($term, $dir);
         }
 
@@ -181,8 +169,6 @@ sub do_copy {
     my $line = $term->line ($url_selected);
     my $text = substr($line->t, $h{col_from}, $h{col_to} - $h{col_from} + 1);
 
-    print "    copy (" . $url_selected . "," . $h{col_from} . "-" . $h{col_to} . "):  $text\n";
-
     system ("echo $text | xclip -i");
 }
 
@@ -200,8 +186,6 @@ sub move_highlight {
             last FIND;
         }
     }
-
-    print "  index $url_selected\n";
 
     do_highlight ($term, 1);
 
@@ -221,8 +205,6 @@ sub do_highlight {
     my $text = $line->t;
     my $rend = $line->r;
 
-    print "    $enable (" . $url_selected . "," . $h{col_from} . "-" . $h{col_to} . "):  $text\n";
-
     if ($enable) {
         $_ |= urxvt::RS_RVid
         for @{$rend}[ $h{col_from} .. $h{col_to}];
@@ -238,20 +220,7 @@ sub do_highlight {
 sub activate_mark_mode {
     my ($term, $cmd) = @_;
 
-    print "activate ".($#url_db)."\n";
-
-    LIST: for (my $n=0; $n<=$#url_db; $n++) {
-        my $o = $url_db[$n];
-        next LIST if not defined $o;
-        my %h = %$o;
-
-        my $line = $term->line ($n);
-        my $text = $line->t;
-
-        print "(" . $n . "," . $h{col_from} . "-" . $h{col_to} . "):  $text\n";
-    }
-
-    move_highlight ($term, 1);
+    move_highlight ($term, -1);
     $mark_mode_active=1 if ($url_selected > -1)
 }
 
