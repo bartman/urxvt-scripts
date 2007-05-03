@@ -1,0 +1,29 @@
+Blog'ed http://www.jukie.net/~bart/blog/urxvt-url-yank
+
+Main author
+  Bart Trojanowski <bart@jukie.net>
+
+Contributors
+  << your name here >>
+
+mark-yank-urls
+
+  NOTES:
+    apt-get install rxvt xclip git
+    git clone git://tachyon.jukie.net/urxvt.git/ urxvt.git
+    mkdir ~/.urxvt
+    cp urxvt.git ~/.urxvt
+
+    cat > ~/.Xdefaults <<END
+URxvt.keysym.M-u: perl:mark-yank-urls:activate_mark_mode
+URxvt.reverseVideo: true
+URxvt.perl-lib: /home/jukie/bart/.urxvt/
+URxvt.perl-ext: selection
+URxvt.perl-ext: mark-yank-urls
+END
+
+  TODO:
+    - don't rely on xclip
+    - 'o' to open in browser, select browser in Xdefaults
+    - whole screen capture
+    - b,e,w,W,gg,G for movement
