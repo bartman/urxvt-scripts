@@ -4,7 +4,7 @@ SCRIPTS     = mark-yank-urls
 
 INSTALL     = $(shell which install)
 
-.PHONY: all help install check_path
+.PHONY: all help install clean check_install_dir
 
 all: help
 
@@ -14,9 +14,12 @@ help:
 	@echo "  install      install scripts in ${INSTALL_DIR}"
 	@echo 
 
-install: check_path ${INSTALL} ${SCRIPTS}
+install: check_install_dir ${INSTALL} ${SCRIPTS}
 	${INSTALL} -t ${INSTALL_DIR} ${SCRIPTS}
 
-check_path: ${INSTALL}
+clean:
+	-rm -f *~
+
+check_install_dir: ${INSTALL}
 	@[ -d "${HOME}" ] || ( echo "environment variable HOME is not a directory" >&2 ; false )
 	${INSTALL} -d ${INSTALL_DIR}
