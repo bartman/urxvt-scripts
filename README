@@ -23,7 +23,6 @@ URxvt.perl-ext: mark-yank-urls
 END
 
   TODO:
-    - don't rely on xclip
-    - 'o' to open in browser, select browser in Xdefaults
+    - don't rely on xclip (see Clipboard.pm)
     - whole screen capture
     - b,e,w,W,gg,G for movement
