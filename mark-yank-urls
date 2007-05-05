@@ -2,13 +2,6 @@
 
 # ----------------------------------------
 
-my $mark_mode_active = 0;
-my %mod = ( 'control' => 0, 'shift' => 0 );
-my $url_selected = -1;
-my @url_db = ();
-
-# ----------------------------------------
-
 # same url as used in "selection"
 my $url =
    qr{(
@@ -31,18 +24,9 @@ sub on_line_update {
     my $line = $term->line ($row);
     my $text = $line->t;
 
-    undef $url_db[$row];
-
     # find all urls (if any)
     while ($text =~ /$url/g) {
         my $rend = $line->r;
-
-        #
-        # TODO: support more then one URL per line
-        #
-        my %h = ( 'col_from' => $-[1], 
-                  'col_to' => $+[1] - 1 );
-        $url_db[$row] = \%h;
 
         # mark all characters as underlined. we _must_ not toggle underline,
         # as we might get called on an already-marked url.
@@ -81,21 +65,58 @@ sub on_button_release {
     ()
 }
 
-sub on_scroll_back {
-    my ($term, $lines, $saved) = @_;
-
-    if ($lines > $url_selected && $url_selected>0) {
-        move_highlight ($term, 1);
-    }
-
-    for (my $n=0; $n<$lines; $n++) {
-        shift @url_db 
-    }
-
-    ()
-}
+#sub on_scroll_back {
+#    my ($term, $lines, $saved) = @_;
+#
+#    if ($lines > $url_selected && $url_selected>0) {
+#        move_highlight ($term, 1);
+#    }
+#
+#    for (my $n=0; $n<$lines; $n++) {
+#        shift @url_db 
+#    }
+#
+#    ()
+#}
 
 # ----------------------------------------
+
+my $mark_mode_active = 0;
+my %mod = ( 'control' => 0, 'shift' => 0 );
+my $url_selected = -1;
+my @url_db = ();
+
+# ----------------------------------------
+
+sub do_scan_for_urls {
+    my ($term) = @_;
+
+    @url_db = ();
+
+    my $row_start = $term->top_row;
+    my $row_end = $term->nrow;
+
+    for (my $row=$row_start; $row<=$row_end; $row++) {
+
+        # fetch the line that has changed
+        my $line = $term->line ($row);
+        my $text = $line->t;
+
+        # find all urls (if any)
+        while ($text =~ /$url/g) {
+            my $rend = $line->r;
+
+            my %h = ( 'row'      => $row,
+                      'col_from' => $-[1], 
+                      'col_to'   => $+[1] - 1,
+                      'text'     => $text);
+            push @url_db, \%h;
+        }
+    }
+
+    # 0 for none, positive count otherwise
+    return $#url_db + 1;
+}
 
 sub on_user_command {
     my ($term, $cmd) = @_;
@@ -187,19 +208,12 @@ sub do_copy {
 
 sub move_highlight {
     my ($term, $dir) = @_;
-    my $max = $term->nrow;
+    my $max = $#url_db + 1;
 
     do_highlight ($term, 0);
     
-    FIND: for (my $n=1; $n<$max; $n++) {
-        my $index = ($max + $url_selected + ($dir*$n)) % $max;
+    $url_selected = ($max + $url_selected + $dir) % $max;
         
-        if (defined $url_db[$index]) {
-            $url_selected = $index;
-            last FIND;
-        }
-    }
-
     do_highlight ($term, 1);
 
     $term->want_refresh;
@@ -211,16 +225,22 @@ sub do_highlight {
 
     return if $url_selected < 0 || $url_selected >= $max;
     return if not defined $url_db[$url_selected];
+
     my $o = $url_db[$url_selected];
     my %h = %$o;
 
-    my $line = $term->line ($url_selected);
+    my $row = $h{row};
+    my $line = $term->line ($row);
     my $text = $line->t;
     my $rend = $line->r;
 
     if ($enable) {
         $_ |= urxvt::RS_RVid
         for @{$rend}[ $h{col_from} .. $h{col_to}];
+
+        # make it visible
+        $term->view_start ( $row < 0 ? $row : 0 );
+
     } else {
         $_ &= ~urxvt::RS_RVid
         for @{$rend}[ $h{col_from} .. $h{col_to}];
@@ -229,12 +249,17 @@ sub do_highlight {
     $line->r ($rend);
 }
 
-
 sub activate_mark_mode {
     my ($term, $cmd) = @_;
 
-    move_highlight ($term, -1);
-    $mark_mode_active=1 if ($url_selected > -1)
+    if ($mark_mode_active) {
+        move_highlight ($term, -1);
+
+    } elsif ( do_scan_for_urls ($term) ) {
+        move_highlight ($term, 0);
+        $mark_mode_active=1 if ($url_selected > -1)
+
+    }
 }
 
 # vim: set et ts=4 sw=4:
