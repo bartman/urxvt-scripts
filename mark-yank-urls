@@ -14,7 +14,7 @@ sub on_start {
 
     $term->{have_Clipboard} = eval { require Clipboard; };
     if ($term->{have_Clipboard}) {
-        use Clipboard;
+        import Clipboard;
     }
 
     $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
