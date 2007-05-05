@@ -146,19 +146,13 @@ sub on_key_release {
         my $ch = chr($keysym);
 
         if ($keysym == 65307) {                     # <esc>
-            $mark_mode_active = 0;
-            do_highlight ($term, 0);
-            $term->want_refresh;
-            $url_selected = -1;
+            deactivate_mark_mode ($term);
             return 1;
 
         } elsif ($keysym == 65293) {                # <enter>
             do_copy ($term);
-            $mark_mode_active = 0;
-            do_highlight ($term, 0);
-            $term->want_refresh;
-            $url_selected = -1;
             $term->exec_async ($term->{browser} . ' `xclip -o`');
+            deactivate_mark_mode ($term);
             return 1;
 
         } elsif ($keysym == 65507) {                # <control>
@@ -176,12 +170,8 @@ sub on_key_release {
 
         } elsif ($ch eq 'y') {
             do_copy ($term);
-            $mark_mode_active = 0;
-            do_highlight ($term, 0);
-            $term->want_refresh;
-            $url_selected = -1;
+            deactivate_mark_mode ($term);
             return 1;
-
         }
 
         return 1;
@@ -250,16 +240,32 @@ sub do_highlight {
 }
 
 sub activate_mark_mode {
-    my ($term, $cmd) = @_;
+    my ($term) = @_;
 
     if ($mark_mode_active) {
+
         move_highlight ($term, -1);
 
     } elsif ( do_scan_for_urls ($term) ) {
-        move_highlight ($term, 0);
-        $mark_mode_active=1 if ($url_selected > -1)
 
+        $term->{save_view_start} = $term->view_start;
+
+        move_highlight ($term, 0);
+
+        $mark_mode_active=1 if ($url_selected > -1)
     }
+}
+
+sub deactivate_mark_mode {
+    my ($term) = @_;
+
+    do_highlight ($term, 0);
+
+    $mark_mode_active = 0;
+    $url_selected = -1;
+
+    $term->view_start ($term->{save_view_start});
+    $term->want_refresh;
 }
 
 # vim: set et ts=4 sw=4:
