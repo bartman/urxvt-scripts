@@ -10,11 +10,16 @@ my $url =
    )}x;
 
 sub on_start {
-   my ($term) = @_;
+    my ($term) = @_;
 
-   $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
+    $term->{have_Clipboard} = eval { require Clipboard; };
+    if ($term->{have_Clipboard}) {
+        use Clipboard;
+    }
 
-   ()
+    $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
+
+    ()
 }
 
 sub on_line_update {
@@ -150,8 +155,9 @@ sub on_key_release {
             return 1;
 
         } elsif ($keysym == 65293) {                # <enter>
-            do_copy ($term);
-            $term->exec_async ($term->{browser} . ' `xclip -o`');
+            $url = get_active_url($term);
+            $url =~ s/\(["|><&()]\)/\\$1/;
+            $term->exec_async ($term->{browser} . ' ' . $url);
             deactivate_mark_mode ($term);
             return 1;
 
@@ -180,7 +186,7 @@ sub on_key_release {
     ()
 }
 
-sub do_copy {
+sub get_active_url {
     my ($term) = @_;
     my $max = $#url_db + 1;
 
@@ -192,8 +198,20 @@ sub do_copy {
     my $line = $term->line ($url_selected);
     my $text = substr($line->t, $h{col_from}, $h{col_to} - $h{col_from} + 1);
 
-    $text =~ s/\(["|><&()]\)/\\$1/;
-    system ("echo -n \"$text\" | xclip -i");
+    return $text;
+}
+
+sub do_copy {
+    my ($term) = @_;
+
+    my $text = get_active_url ($term);
+
+    if ($term->{have_Clipboard}) {
+        Clipboard->copy($text);
+    } else {
+        $text =~ s/\(["|><&()]\)/\\$1/;
+        system ("echo -n \"$text\" | xclip -i");
+    }
 }
 
 sub move_highlight {
