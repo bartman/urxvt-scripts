@@ -23,6 +23,6 @@ URxvt.perl-ext: mark-yank-urls
 END
 
   TODO:
-    - don't rely on xclip (see Clipboard.pm)
+    - get rid of globals, use $term->{variable}s
     - whole screen capture
     - b,e,w,W,gg,G for movement

@@ -3,7 +3,7 @@
 # ----------------------------------------
 
 # same url as used in "selection"
-my $url =
+my $url_matcher =
    qr{(
       (?:https?://|ftp://|news://|mailto:|file://)[ab-zA-Z0-9\-\@;\/?:&=%\$_.+!*\x27(),~#]+
       [ab-zA-Z0-9\-\@;\/?:&=%\$_+!*\x27()~]   # exclude some trailing characters (heuristic)
@@ -30,7 +30,7 @@ sub on_line_update {
     my $text = $line->t;
 
     # find all urls (if any)
-    while ($text =~ /$url/g) {
+    while ($text =~ /$url_matcher/g) {
         my $rend = $line->r;
 
         # mark all characters as underlined. we _must_ not toggle underline,
@@ -59,7 +59,7 @@ sub on_button_release {
         my $line = $term->line ($row);
         my $text = $line->t;
 
-        while ($text =~ /$url/g) {
+        while ($text =~ /$url_matcher/g) {
             if ($-[1] <= $col && $+[1] >= $col) {
                 $term->exec_async ($term->{browser}, $1);
                 return 1;
@@ -108,7 +108,7 @@ sub do_scan_for_urls {
         my $text = $line->t;
 
         # find all urls (if any)
-        while ($text =~ /$url/g) {
+        while ($text =~ /$url_matcher/g) {
             my $rend = $line->r;
 
             my %h = ( 'row'      => $row,
@@ -116,6 +116,8 @@ sub do_scan_for_urls {
                       'col_to'   => $+[1] - 1,
                       'text'     => $text);
             push @url_db, \%h;
+
+            print "(".$row.",".($-[1])."\n";
         }
     }
 
@@ -155,7 +157,7 @@ sub on_key_release {
             return 1;
 
         } elsif ($keysym == 65293) {                # <enter>
-            $url = get_active_url($term);
+            my $url = get_active_url($term);
             $url =~ s/\(["|><&()]\)/\\$1/;
             $term->exec_async ($term->{browser} . ' ' . $url);
             deactivate_mark_mode ($term);
@@ -174,10 +176,11 @@ sub on_key_release {
             my $dir = ($ch eq 'n') ? 1 : -1;
             move_highlight ($term, $dir);
 
-        } elsif ($ch eq 'y') {
+        } elsif ($ch eq 'y') {                      # y
             do_copy ($term);
             deactivate_mark_mode ($term);
             return 1;
+
         }
 
         return 1;
@@ -270,7 +273,7 @@ sub activate_mark_mode {
 
         move_highlight ($term, 0);
 
-        $mark_mode_active=1 if ($url_selected > -1)
+        $mark_mode_active=1 if ($url_selected > -1);
     }
 }
 
