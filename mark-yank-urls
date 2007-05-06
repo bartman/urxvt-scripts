@@ -110,14 +110,13 @@ sub do_scan_for_urls {
         # find all urls (if any)
         while ($text =~ /$url_matcher/g) {
             my $rend = $line->r;
+            my $url = $1;
 
             my %h = ( 'row'      => $row,
                       'col_from' => $-[1], 
                       'col_to'   => $+[1] - 1,
-                      'text'     => $text);
+                      'url'      => $url);
             push @url_db, \%h;
-
-            print "(".$row.",".($-[1])."\n";
         }
     }
 
@@ -198,10 +197,7 @@ sub get_active_url {
     my $o = $url_db[$url_selected];
     my %h = %$o;
 
-    my $line = $term->line ($url_selected);
-    my $text = substr($line->t, $h{col_from}, $h{col_to} - $h{col_from} + 1);
-
-    return $text;
+    return $h{url};
 }
 
 sub do_copy {
