@@ -9,7 +9,7 @@ Contributors
 mark-yank-urls
 
   NOTES:
-    apt-get install rxvt xclip git
+    apt-get install rxvt-unicode xclip git-core
     git clone git://tachyon.jukie.net/urxvt.git/ urxvt.git
     mkdir ~/.urxvt
     cp urxvt.git/mark-yank-urls ~/.urxvt
