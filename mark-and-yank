@@ -111,8 +111,19 @@ sub on_button_release {
 
 # ------------------------------------------------------------------------
 
+my %key2mod = (
+    65505 => urxvt::ShiftMask,
+    65507 => urxvt::ControlMask,
+    65513 => urxvt::Mod1Mask,   # Alt
+    65514 => urxvt::Mod1Mask,   # Alt
+    65515 => urxvt::Mod4Mask,   # Super
+    65516 => urxvt::Mod4Mask,   # Super
+);
+my $mod = 0;
+
+#my %mod = ( 'control' => 0, 'shift' => 0 );
+
 my $mark_mode_active = 0;
-my %mod = ( 'control' => 0, 'shift' => 0 );
 my $url_selected = -1;
 my @url_db = ();
 
@@ -165,8 +176,12 @@ sub on_user_command {
 sub on_key_press {
     my ($term, $event, $keysym, $octets) = @_;
 
-    ($keysym == 65507) && { $mod{control} = 1 };
-    ($keysym == 65505) && { $mod{shift} = 1 };
+    foreach my $key (keys %key2mod) {
+        if ($keysym == $key) {
+            $mod |= $key2mod{$key};
+            return ();
+        }
+    }
 
     # ignore all input when we are active
     $mark_mode_active && return 1;
@@ -177,46 +192,44 @@ sub on_key_press {
 sub on_key_release {
     my ($term, $event, $keysym, $octets) = @_;
 
+    foreach my $key (keys %key2mod) {
+        if ($keysym == $key) {
+            $mod &= ~$key2mod{$key};
+            return 1;
+        }
+    }
+
     if ($mark_mode_active) {
         my $ch = chr($keysym);
 
-        if ($keysym == 65307) {                     # <esc>
+        if (!$mod && $keysym == 65307) {                     # <esc>
             deactivate_mark_mode ($term);
             return 1;
 
-        } elsif ($keysym == 65293) {                # <enter>
+        } elsif (!$mod && $keysym == 65293) {                # <enter>
             my $url = get_active_url($term);
             $url =~ s/\(["|><&()]\)/\\$1/;
             $term->exec_async ($term->{browser} . ' ' . $url);
             deactivate_mark_mode ($term);
             return 1;
 
-        } elsif ($keysym == 65507) {                # <control>
-            $mod{control} = 0;
-            return 1;
-
-        } elsif ($keysym == 65505) {                # <shift>
-            $mod{shift} = 0;
-            return 1;
-
-        } elsif ($mod{control} && (($ch eq 'n') || ($ch eq 'p'))) {
+        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
                                                     # ^n and ^p to cycle list
             my $dir = ($ch eq 'n') ? 1 : -1;
             move_highlight ($term, $dir);
 
-        } elsif ($ch eq 'y') {                      # y - yank selected
+        } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             do_copy ($term);
             deactivate_mark_mode ($term);
             return 1;
 
-        } elsif ($ch eq 'k') {                      # k - move up
+        } elsif (!$mod && $ch eq 'k') {                      # k - move up
             my $row = $term->view_start - 1;
             $term->view_start ( $row );
 
-        } elsif ($ch eq 'j') {                      # k - move down
+        } elsif (!$mod && $ch eq 'j') {                      # j - move down
             my $row = $term->view_start + 1;
             $term->view_start ( $row );
-
         }
 
         return 1;
@@ -296,15 +309,11 @@ sub do_highlight {
 sub activate_mark_mode {
     my ($term) = @_;
 
-print "activate_mark_mode\n";
-
     $mark_mode_active=1;
 }
 
 sub activate_mark_url_mode {
     my ($term) = @_;
-
-print "activate_mark_url_mode\n";
 
     if ($mark_mode_active) {
 
