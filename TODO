@@ -1,0 +1,9 @@
+16:47 < maxauthor> bartman: I just thought about a useful feature, Alt-K would select lines one upwards, which can then be pasted to the current bash-command with enter, let me explain...
+16:47 < maxauthor> $ locate test.conf ->
+16:47 < maxauthor> 1
+16:47 < maxauthor> 2
+16:47 < maxauthor> 3
+16:47 < maxauthor> 4
+16:47 < maxauthor> $ vim <Alt-k><alt-k><enter> ->
+16:47 < maxauthor> $ vim 3
+
