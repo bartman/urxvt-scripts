@@ -1,4 +1,4 @@
-Blog'ed http://www.jukie.net/~bart/blog/urxvt-url-yank
+Blog'ed http://www.jukie.net/~bart/blog/tag/urxvt
 
 Main author
   Bart Trojanowski <bart@jukie.net>
@@ -6,12 +6,40 @@ Main author
 Contributors
   << your name here >>
 
-mark-yank-urls
+mark-and-yank
+
+  This is a general purpose block copy script.  It completely replaces
+  the mark-yank-urls script.
 
   NOTES:
     apt-get install rxvt-unicode xclip git-core
     git clone git://tachyon.jukie.net/urxvt.git/ urxvt.git
-    mkdir ~/.urxvt
+    mkdir -p ~/.urxvt
+    cp urxvt.git/mark-and-yank ~/.urxvt
+
+    cat > ~/.Xdefaults <<END
+URxvt.keysym.M-y: perl:mark-and-yank:activate_mark_mode
+URxvt.keysym.M-u: perl:mark-and-yank:activate_mark_url_mode
+URxvt.perl-lib: /home/jukie/bart/.urxvt/
+URxvt.perl-ext: mark-and-yank
+URxvt.urlLauncher: firefox
+END
+
+  TODO:
+    - get rid of globals, use $term->{variable}s
+    - whole screen capture
+    - b,e,w,W,gg,G for movement
+
+
+mark-yank-urls
+  
+  This script will cycle through URLs in the terminal and let you 
+  copy them (y) or launch a browser (<enter>).
+
+  NOTES:
+    apt-get install rxvt-unicode xclip git-core
+    git clone git://tachyon.jukie.net/urxvt.git/ urxvt.git
+    mkdir -p ~/.urxvt
     cp urxvt.git/mark-yank-urls ~/.urxvt
 
     cat > ~/.Xdefaults <<END
@@ -22,7 +50,3 @@ URxvt.perl-ext: selection
 URxvt.perl-ext: mark-yank-urls
 END
 
-  TODO:
-    - get rid of globals, use $term->{variable}s
-    - whole screen capture
-    - b,e,w,W,gg,G for movement
