@@ -95,20 +95,6 @@ sub on_button_release {
     ()
 }
 
-#sub on_scroll_back {
-#    my ($term, $lines, $saved) = @_;
-#
-#    if ($lines > $url_selected && $url_selected>0) {
-#        move_highlight ($term, 1);
-#    }
-#
-#    for (my $n=0; $n<$lines; $n++) {
-#        shift @url_db 
-#    }
-#
-#    ()
-#}
-
 # ------------------------------------------------------------------------
 
 my %key2mod = (
@@ -195,7 +181,7 @@ sub on_key_release {
     foreach my $key (keys %key2mod) {
         if ($keysym == $key) {
             $mod &= ~$key2mod{$key};
-            return 1;
+            return ();
         }
     }
 
@@ -213,15 +199,21 @@ sub on_key_release {
             deactivate_mark_mode ($term);
             return 1;
 
-        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
-                                                    # ^n and ^p to cycle list
-            my $dir = ($ch eq 'n') ? 1 : -1;
-            move_highlight ($term, $dir);
-
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             do_copy ($term);
             deactivate_mark_mode ($term);
             return 1;
+
+        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
+                                                    # ^n and ^p to cycle list
+            my $dir = ($ch eq 'n') ? 1 : -1;
+            move_url_highlight ($term, $dir);
+
+        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
+                                                    # ^f and ^b to scroll
+            my $ofs = ($ch eq 'f') ? 1 : -1;
+            my $row = $term->view_start + $ofs;
+            $term->view_start ( $row );
 
         } elsif (!$mod && $ch eq 'k') {                      # k - move up
             my $row = $term->view_start - 1;
@@ -263,7 +255,7 @@ sub do_copy {
     }
 }
 
-sub move_highlight {
+sub move_url_highlight {
     my ($term, $dir) = @_;
     my $max = $#url_db + 1;
 
@@ -317,13 +309,13 @@ sub activate_mark_url_mode {
 
     if ($mark_mode_active) {
 
-        move_highlight ($term, -1);
+        move_url_highlight ($term, -1);
 
     } elsif ( do_scan_for_urls ($term) ) {
 
         $term->{save_view_start} = $term->view_start;
 
-        move_highlight ($term, 0);
+        move_url_highlight ($term, 0);
 
         $mark_mode_active=1 if ($url_selected > -1);
     }
