@@ -111,6 +111,9 @@ my $mod = 0;
 
 my $mark_mode_active = 0;
 my @backup_cursor = ();
+my @visual_start = ();
+my $visual_mode = 0;        # 'v', 'V', or '^v'
+my %visual_backup = ();
 my @cursor = ();
 my $url_selected = -1;
 my @url_db = ();
@@ -161,6 +164,8 @@ sub on_user_command {
     ()
 }
 
+# ------------------------------------------------------------------------
+
 sub on_key_press {
     my ($term, $event, $keysym, $octets) = @_;
 
@@ -192,6 +197,7 @@ sub on_key_release {
 
         if (!$mod && $keysym == 65307) {                     # <esc>
             deactivate_mark_mode ($term);
+            visual_mode_disable ($term);
             return 1;
 
         } elsif (!$mod && $keysym == 65293) {                # <enter>
@@ -199,17 +205,20 @@ sub on_key_release {
             $url =~ s/\(["|><&()]\)/\\$1/;
             $term->exec_async ($term->{browser} . ' ' . $url);
             deactivate_mark_mode ($term);
+            visual_mode_disable ($term);
             return 1;
 
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             do_copy ($term);
             deactivate_mark_mode ($term);
+            visual_mode_disable ($term);
             return 1;
 
         } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
                                                     # ^n and ^p to cycle list
             my $dir = ($ch eq 'n') ? 1 : -1;
             move_url_highlight ($term, $dir);
+            visual_mode_disable ($term);
 
         } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
                                                     # ^f and ^b to scroll
@@ -219,25 +228,30 @@ sub on_key_release {
 
         } elsif (!$mod && $ch =~ m/^[hjkl]$/ ) {    # hjkl - move left/down/up/right
 
+            my @dest = @cursor;
+
             if ($ch eq 'h') {                       # left
-                if ($cursor[1] > 0) {
-                    $cursor[1] -= 1;
+                if ($dest[1] > 0) {
+                    $dest[1] -= 1;
                 }
             } elsif ($ch eq 'j') {                  # down
-                if ($cursor[0] < $term->nrow) {
-                    $cursor[0] += 1;
+                if ($dest[0] < $term->nrow) {
+                    $dest[0] += 1;
                 }
             } elsif ($ch eq 'k') {                  # up
-                if ($cursor[0] > $term->top_row) {
-                    $cursor[0] -= 1;
+                if ($dest[0] > $term->top_row) {
+                    $dest[0] -= 1;
                 }
             } elsif ($ch eq 'l') {                  # right
-                if ($cursor[1] < ($term->ncol - 1)) {
-                    $cursor[1] += 1;
+                if ($dest[1] < ($term->ncol - 1)) {
+                    $dest[1] += 1;
                 }
             }
 
-            $term->screen_cur (@cursor);
+            visual_mode_update ($term, \@cursor, \@dest);
+
+            @cursor = @dest;
+            $term->screen_cur (@dest);
             $term->want_refresh;
 
             my $row = $term->view_start;
@@ -247,6 +261,11 @@ sub on_key_release {
                 $term->view_start ( $row + 1 );
             }
 
+
+        } elsif (!$mod && $ch eq 'v') {             # characterwise-visual mode
+
+            visual_mode_disable ($term);
+            visual_mode_enable ($term, 'v', @cursor);
         }
 
         return 1;
@@ -254,6 +273,8 @@ sub on_key_release {
 
     ()
 }
+
+# ------------------------------------------------------------------------
 
 sub get_active_url {
     my ($term) = @_;
@@ -279,6 +300,8 @@ sub do_copy {
         system ("echo -n \"$text\" | xclip -i");
     }
 }
+
+# ------------------------------------------------------------------------
 
 sub move_url_highlight {
     my ($term, $dir) = @_;
@@ -322,6 +345,97 @@ sub do_highlight {
 
     $line->r ($rend);
 }
+
+# ------------------------------------------------------------------------
+
+sub draw_visual_highlight {
+
+    my ($term, $row, $start, $end) = @_;
+
+    print "  fill $row $start $end\n";
+
+    my $line = $term->line ($row);
+
+    # backup this line the first time we see it
+    $visual_backup{$row} = $line->r if not defined $visual_backup{$row};
+
+    my $rend = $line->r;
+
+    $_ |= urxvt::RS_RVid
+    for @{$rend}[ $start .. $end ];
+
+    $line->r ($rend);
+}
+
+sub visual_mode_enable {
+    my ($term, $mode, @cur) = @_;
+
+    $visual_mode = $mode;
+    @visual_start = @cur;
+}
+
+sub visual_mode_disable {
+    my ($term) = @_;
+
+    if ($visual_mode) {
+
+        for my $row (keys %visual_backup) {
+            my $line = $term->line ($row);
+            $line->r ($visual_backup{$row});
+            undef $visual_backup{$row};
+        }
+        
+        $visual_mode = 0;
+
+        $term->want_refresh;
+    }
+}
+
+sub visual_mode_update {
+    my ($term, $oldref, $newref) = @_;
+    my @old = @$oldref;
+    my @new = @$newref;
+
+    my @fill_rows = ();
+
+    if ($visual_mode eq 'v') {
+
+        print "v: (" . $visual_start[0] . ","
+                     . $visual_start[1] . ") -> ("
+                     . $new[0] . ","
+                     . $new[1] . ")\n";
+
+        if ($visual_start[0] == $new[0]) {
+            draw_visual_highlight ($term, $new[0], $visual_start[1], $new[1]);
+        } else {
+            my @one = ();
+            my @two = ();
+
+            if ($visual_start[0] < $new[0]) {
+                @one = @visual_start;
+                @two = @new;
+            } else {
+                @one = @new;
+                @two = @visual_start;
+            }
+
+            draw_visual_highlight ($term, $one[0], $one[1], $term->ncol);
+            draw_visual_highlight ($term, $two[0], 0, $two[1]);
+
+            if ($one[0] + 1 < $two[0]) {
+                @fill_rows = ($one[0] + 1, $two[0] - 1);
+            }
+        }
+    }
+
+    if (@fill_rows) {
+        for ( my $row = $fill_rows[0]; $row <= $fill_rows[1]; $row ++) {
+            draw_visual_highlight ($term, $row, 0, $term->ncol);
+        }
+    }
+}
+
+# ------------------------------------------------------------------------
 
 sub activate_mark_mode {
     my ($term) = @_;
