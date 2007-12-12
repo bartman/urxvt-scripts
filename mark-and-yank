@@ -223,6 +223,16 @@ sub on_key_release {
                 visual_mode_enable ($term, 'v', @cursor);
             }
 
+        } elsif (!$mod && $ch eq 'o') {                      # o - go to other end of region
+            if ($first_mark_set) {
+                my @dest = @visual_start;
+                @visual_start = @cursor;
+                @cursor = @dest;
+
+                $term->screen_cur (@dest);
+                $term->want_refresh;
+            }
+
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             my %url = get_active_url ($term);
 
