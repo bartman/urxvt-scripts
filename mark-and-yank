@@ -322,6 +322,101 @@ sub on_key_release {
             $term->view_start(0);
             visual_mode_update ($term, \@cursor, [$term->nrow, $term->ROW_l($cursor[0])]);
 
+        } elsif ($ch eq 'w') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\w/;
+            until (substr($line, $dest[1], 1) =~ m/\w/) {
+                ++$dest[1];
+                next if $dest[1] <= $term->ROW_l($dest[0]);
+                ++$dest[0];
+                return 1 if $dest[0] >= $term->nrow;
+                $dest[1] = 0;
+                $line = $term->ROW_t($dest[0]);
+            }
+
+	    visual_mode_update ($term, \@cursor, \@dest);
+
+        } elsif ($ch eq 'e') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            ++$dest[1];
+            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\W/;
+            until (substr($line, $dest[1], 1) =~ m/\w/) {
+                ++$dest[1];
+                next if $dest[1] <= $term->ROW_l($dest[0]);
+                ++$dest[0];
+                return 1 if $dest[0] >= $term->nrow;
+                $dest[1] = 0;
+                $line = $term->ROW_t($dest[0]);
+            }
+            ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\w/;
+
+	    visual_mode_update ($term, \@cursor, \@dest);
+
+        } elsif ($ch eq 'b') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/);
+            until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/) {
+                --$dest[1];
+                next if $dest[1] >= 0;
+                --$dest[0];
+                return 1 if $dest[0] <= 0;
+                $dest[1] = $term->ROW_l($dest[0]);
+                $line = $term->ROW_t($dest[0]);
+            }
+            --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/;
+
+	    visual_mode_update ($term, \@cursor, \@dest);
+
+        } elsif ($ch eq 'W') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\S/;
+            until (substr($line, $dest[1], 1) =~ m/\S/) {
+                ++$dest[1];
+                next if $dest[1] <= $term->ROW_l($dest[0]);
+                ++$dest[0];
+                return 1 if $dest[0] >= $term->nrow;
+                $dest[1] = 0;
+                $line = $term->ROW_t($dest[0]);
+            }
+
+	    visual_mode_update ($term, \@cursor, \@dest);
+
+        } elsif ($ch eq 'E') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            ++$dest[1];
+            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\s/;
+            until (substr($line, $dest[1], 1) =~ m/\S/) {
+                ++$dest[1];
+                next if $dest[1] <= $term->ROW_l($dest[0]);
+                ++$dest[0];
+                return 1 if $dest[0] >= $term->nrow;
+                $dest[1] = 0;
+                $line = $term->ROW_t($dest[0]);
+            }
+            ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\S/;
+
+	    visual_mode_update ($term, \@cursor, \@dest);
+
+        } elsif ($ch eq 'B') {
+	    my @dest = @cursor;
+            my $line = $term->ROW_t($dest[0]);
+            --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/);
+            until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/) {
+                --$dest[1];
+                next if $dest[1] >= 0;
+                --$dest[0];
+                return 1 if $dest[0] <= 0;
+                $dest[1] = $term->ROW_l($dest[0]);
+                $line = $term->ROW_t($dest[0]);
+            }
+            --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/;
+
+	    visual_mode_update ($term, \@cursor, \@dest);
         }
 
         return 1;
