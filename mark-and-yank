@@ -210,7 +210,10 @@ sub on_key_release {
             visual_mode_disable ($term, @cursor);
 
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
-            do_copy ($term);
+            my %url = get_active_url ($term);
+
+            do_copy($term, $url{row}, $url{col_from}, $url{row}, $url{col_to}) if %url;
+
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
 
@@ -287,10 +290,7 @@ sub get_active_url {
 }
 
 sub do_copy {
-    my ($term) = @_;
-
-    my %url = get_active_url();
-    my ($y1, $x1, $y2, $x2) = ($url{row}, $url{col_from}, $url{row}, $url{col_to});
+    my ($term, $y1, $x1, $y2, $x2) = @_;
 
     $term->selection_beg($y1, $x1);
     $term->selection_end($y2, 1 + $x2);
