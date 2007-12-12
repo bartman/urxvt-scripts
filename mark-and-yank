@@ -47,6 +47,12 @@ sub on_start {
     ()
 }
 
+sub open_url {
+    my ($term, $url) = @_;
+
+    $term->exec_async ($term->{browser}), $url);
+}
+
 sub on_line_update {
     my ($term, $row) = @_;
 
@@ -86,7 +92,7 @@ sub on_button_release {
 
         while ($text =~ /$url_matcher/g) {
             if ($-[1] <= $col && $+[1] >= $col) {
-                $term->exec_async ($term->{browser}, $1);
+                open_url($term, $1);
                 return 1;
             }
         }
@@ -203,7 +209,7 @@ sub on_key_release {
         } elsif (!$mod && $keysym == 65293) {                # <enter>
             my $url = get_active_url($term);
             $url =~ s/\(["|><&()]\)/\\$1/;
-            $term->exec_async ($term->{browser}, $url);
+            open_url($term, $url);
             deactivate_mark_mode ($term);
             visual_mode_disable ($term);
             return 1;
