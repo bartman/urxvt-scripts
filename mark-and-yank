@@ -188,7 +188,7 @@ sub on_key_press {
 }
 
 sub on_key_release {
-    my ($term, $event, $keysym, $octets) = @_;
+    my ($term, $event, $keysym) = @_;
 
     foreach my $key (keys %key2mod) {
         if ($keysym == $key) {
