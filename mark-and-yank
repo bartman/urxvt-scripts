@@ -275,29 +275,25 @@ sub on_key_release {
             my $row = $term->view_start + $ofs;
             $term->view_start ( $row );
 
-        } elsif (!$mod && $ch =~ m/^[hjkl]$/ ) {    # hjkl - move left/down/up/right
-
-            my @dest = @cursor;
-
-            if ($ch eq 'h') {                       # left
-                if ($dest[1] > 0) {
-                    $dest[1] -= 1;
-                }
-            } elsif ($ch eq 'j') {                  # down
-                if ($dest[0] < $term->nrow) {
-                    $dest[0] += 1;
-                }
-            } elsif ($ch eq 'k') {                  # up
-                if ($dest[0] > $term->top_row) {
-                    $dest[0] -= 1;
-                }
-            } elsif ($ch eq 'l') {                  # right
-                if ($dest[1] < ($term->ncol - 1)) {
-                    $dest[1] += 1;
-                }
+        } elsif (!$mod && $ch eq 'h') {                       # left
+            if ($cursor[1] > 0) {
+                visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] - 1]);
             }
 
-            visual_mode_update ($term, \@cursor, \@dest);
+        } elsif (!$mod && $ch eq 'j') {                  # down
+            if ($cursor[0] < $term->nrow) {
+                visual_mode_update ($term, \@cursor, [$cursor[0] + 1, $cursor[1]]);
+            }
+
+        } elsif (!$mod && $ch eq 'k') {                  # up
+            if ($cursor[0] > $term->top_row) {
+                visual_mode_update ($term, \@cursor, [$cursor[0] - 1, $cursor[1]]);
+            }
+
+        } elsif (!$mod && $ch eq 'l') {                  # right
+            if ($cursor[1] < ($term->ncol - 1)) {
+                visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] + 1]);
+            }
         }
 
         return 1;
