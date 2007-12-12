@@ -294,6 +294,15 @@ sub on_key_release {
             if ($cursor[1] < ($term->ncol - 1)) {
                 visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] + 1]);
             }
+
+        } elsif ($ch eq 'H') {
+            visual_mode_update ($term, \@cursor, [0, $cursor[1]]);
+
+        } elsif ($ch eq 'M') {
+            visual_mode_update ($term, \@cursor, [$term->nrow / 2, $cursor[1]]);
+
+        } elsif ($ch eq 'L') {
+            visual_mode_update ($term, \@cursor, [$term->nrow, $cursor[1]]);
         }
 
         return 1;
