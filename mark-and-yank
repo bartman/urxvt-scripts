@@ -203,7 +203,6 @@ sub on_key_release {
         if (!$mod && $keysym == 65307) {                     # <esc>
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
-            return 1;
 
         } elsif (!$mod && $keysym == 65293) {                # <enter>
             my $url = get_active_url($term);
@@ -211,13 +210,11 @@ sub on_key_release {
             open_url($term, $url);
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
-            return 1;
 
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             do_copy ($term);
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
-            return 1;
 
         } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
                                                     # ^n and ^p to cycle list
