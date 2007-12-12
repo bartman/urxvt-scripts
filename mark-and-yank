@@ -117,6 +117,7 @@ my $visual_mode = 0;        # 'v', 'V', or '^v'
 my @cursor = ();
 my $url_selected = -1;
 my @url_db = ();
+my $first_mark_set = 0;
 
 # ------------------------------------------------------------------------
 
@@ -209,6 +210,19 @@ sub on_key_release {
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
 
+        } elsif (!$mod && $keysym == 32) {                   # <space>
+            if ($first_mark_set) {
+                do_copy($term, @visual_start, @cursor);
+
+                deactivate_mark_mode ($term);
+                visual_mode_disable ($term, @cursor);
+            } else {
+
+                $first_mark_set = 1;
+
+                visual_mode_enable ($term, 'v', @cursor);
+            }
+
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             my %url = get_active_url ($term);
 
@@ -263,12 +277,6 @@ sub on_key_release {
             } elsif ($cursor[1] > ($row + $term->nrow)) {
                 $term->view_start ( $row + 1 );
             }
-
-
-        } elsif (!$mod && $ch eq 'v') {             # characterwise-visual mode
-
-            visual_mode_disable ($term, @cursor);
-            visual_mode_enable ($term, 'v', @cursor);
         }
 
         return 1;
@@ -291,6 +299,10 @@ sub get_active_url {
 
 sub do_copy {
     my ($term, $y1, $x1, $y2, $x2) = @_;
+
+    if ($y1 > $y2 || ($y1 == $y2 && $x1 > $x2)) {
+        ($y2, $x2, $y1, $x1) = ($y1, $x1, $y2, $x2);
+    }
 
     $term->selection_beg($y1, $x1);
     $term->selection_end($y2, 1 + $x2);
@@ -421,6 +433,7 @@ sub deactivate_mark_mode {
 
     $mark_mode_active = 0;
     $term->screen_cur (@backup_cursor);
+    $first_mark_set = 0;
     $url_selected = -1;
 
     $term->view_start ($term->{save_view_start});
