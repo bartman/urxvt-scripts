@@ -50,6 +50,8 @@ sub on_start {
 sub on_line_update {
     my ($term, $row) = @_;
 
+    return unless ($term->x_resource ("underlineURLs") eq "true");
+
     # fetch the line that has changed
     my $line = $term->line ($row);
     my $text = $line->t;
@@ -60,12 +62,10 @@ sub on_line_update {
 
         # mark all characters as underlined. we _must_ not toggle underline,
         # as we might get called on an already-marked url.
-        if ($term->x_resource ("underlineURLs") eq "true") {
-            $_ |= urxvt::RS_Uline
-            for @{$rend}[ $-[1] .. $+[1] - 1];
+        $_ |= urxvt::RS_Uline
+        for @{$rend}[ $-[1] .. $+[1] - 1];
 
-            $line->r ($rend);
-        }
+        $line->r ($rend);
     }
 
     ()
