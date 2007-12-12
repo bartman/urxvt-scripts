@@ -303,6 +303,25 @@ sub on_key_release {
 
         } elsif ($ch eq 'L') {
             visual_mode_update ($term, \@cursor, [$term->nrow, $cursor[1]]);
+
+        } elsif ($ch eq '^') {
+            $term->ROW_t($cursor[0]) =~ m/^\s*/;
+            visual_mode_update ($term, \@cursor, [$cursor[0], $+[0]]);
+
+        } elsif ($ch eq '0') {
+            visual_mode_update ($term, \@cursor, [$cursor[0], 0]);
+
+        } elsif ($ch eq '$') {
+            visual_mode_update ($term, \@cursor, [$cursor[0], $term->ROW_l($cursor[0])]);
+
+        } elsif ($ch eq 'g') {
+            $term->view_start(-$term->saveLines);
+            visual_mode_update ($term, \@cursor, [-$term->saveLines, 0]);
+
+        } elsif ($ch eq 'G') {
+            $term->view_start(0);
+            visual_mode_update ($term, \@cursor, [$term->nrow, $term->ROW_l($cursor[0])]);
+
         }
 
         return 1;
