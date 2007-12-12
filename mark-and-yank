@@ -298,17 +298,6 @@ sub on_key_release {
             }
 
             visual_mode_update ($term, \@cursor, \@dest);
-
-            @cursor = @dest;
-            $term->screen_cur (@dest);
-            $term->want_refresh;
-
-            my $row = $term->view_start;
-            if ($cursor[0] < $row) {
-                $term->view_start ( $row - 1 );
-            } elsif ($cursor[1] > ($row + $term->nrow)) {
-                $term->view_start ( $row + 1 );
-            }
         }
 
         return 1;
@@ -412,12 +401,24 @@ sub visual_mode_update {
     my @old = @$oldref;
     my @new = @$newref;
 
+    @cursor = @new;
+
     if ($visual_mode eq 'v') {
         if ($old[0] > $new[0] || ($old[0] == $new[0] && $old[1] > $new[1])) {
             ($old[0], $old[1], $new[0], $new[1]) = (@new, @old);
         }
 
         $term->scr_xor_span(@old, @new);
+    }
+
+    $term->screen_cur (@cursor);
+    $term->want_refresh;
+
+    my $row = $term->view_start;
+    if ($cursor[0] < $row) {
+        $term->view_start ( $row - 1 );
+    } elsif ($cursor[1] > ($row + $term->nrow)) {
+        $term->view_start ( $row + 1 );
     }
 }
 
