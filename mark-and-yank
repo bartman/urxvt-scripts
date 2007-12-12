@@ -119,7 +119,6 @@ my $mark_mode_active = 0;
 my @backup_cursor = ();
 my @visual_start = ();
 my $visual_mode = 0;        # 'v', 'V', or '^v'
-my %visual_backup = ();
 my @cursor = ();
 my $url_selected = -1;
 my @url_db = ();
@@ -203,7 +202,7 @@ sub on_key_release {
 
         if (!$mod && $keysym == 65307) {                     # <esc>
             deactivate_mark_mode ($term);
-            visual_mode_disable ($term);
+            visual_mode_disable ($term, @cursor);
             return 1;
 
         } elsif (!$mod && $keysym == 65293) {                # <enter>
@@ -211,20 +210,20 @@ sub on_key_release {
             $url =~ s/\(["|><&()]\)/\\$1/;
             open_url($term, $url);
             deactivate_mark_mode ($term);
-            visual_mode_disable ($term);
+            visual_mode_disable ($term, @cursor);
             return 1;
 
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             do_copy ($term);
             deactivate_mark_mode ($term);
-            visual_mode_disable ($term);
+            visual_mode_disable ($term, @cursor);
             return 1;
 
         } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
                                                     # ^n and ^p to cycle list
             my $dir = ($ch eq 'n') ? 1 : -1;
             move_url_highlight ($term, $dir);
-            visual_mode_disable ($term);
+            visual_mode_disable ($term, @cursor);
 
         } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
                                                     # ^f and ^b to scroll
@@ -270,7 +269,7 @@ sub on_key_release {
 
         } elsif (!$mod && $ch eq 'v') {             # characterwise-visual mode
 
-            visual_mode_disable ($term);
+            visual_mode_disable ($term, @cursor);
             visual_mode_enable ($term, 'v', @cursor);
         }
 
@@ -354,25 +353,6 @@ sub do_highlight {
 
 # ------------------------------------------------------------------------
 
-sub draw_visual_highlight {
-
-    my ($term, $row, $start, $end) = @_;
-
-    print "  fill $row $start $end\n";
-
-    my $line = $term->line ($row);
-
-    # backup this line the first time we see it
-    $visual_backup{$row} = $line->r if not defined $visual_backup{$row};
-
-    my $rend = $line->r;
-
-    $_ |= urxvt::RS_RVid
-    for @{$rend}[ $start .. $end ];
-
-    $line->r ($rend);
-}
-
 sub visual_mode_enable {
     my ($term, $mode, @cur) = @_;
 
@@ -381,16 +361,11 @@ sub visual_mode_enable {
 }
 
 sub visual_mode_disable {
-    my ($term) = @_;
+    my ($term, @cursor) = @_;
 
     if ($visual_mode) {
+        $term->scr_xor_span(@visual_start, @cursor);
 
-        for my $row (keys %visual_backup) {
-            my $line = $term->line ($row);
-            $line->r ($visual_backup{$row});
-            undef $visual_backup{$row};
-        }
-        
         $visual_mode = 0;
 
         $term->want_refresh;
@@ -402,42 +377,12 @@ sub visual_mode_update {
     my @old = @$oldref;
     my @new = @$newref;
 
-    my @fill_rows = ();
-
     if ($visual_mode eq 'v') {
-
-        print "v: (" . $visual_start[0] . ","
-                     . $visual_start[1] . ") -> ("
-                     . $new[0] . ","
-                     . $new[1] . ")\n";
-
-        if ($visual_start[0] == $new[0]) {
-            draw_visual_highlight ($term, $new[0], $visual_start[1], $new[1]);
-        } else {
-            my @one = ();
-            my @two = ();
-
-            if ($visual_start[0] < $new[0]) {
-                @one = @visual_start;
-                @two = @new;
-            } else {
-                @one = @new;
-                @two = @visual_start;
-            }
-
-            draw_visual_highlight ($term, $one[0], $one[1], $term->ncol);
-            draw_visual_highlight ($term, $two[0], 0, $two[1]);
-
-            if ($one[0] + 1 < $two[0]) {
-                @fill_rows = ($one[0] + 1, $two[0] - 1);
-            }
+        if ($old[0] > $new[0] || ($old[0] == $new[0] && $old[1] > $new[1])) {
+            ($old[0], $old[1], $new[0], $new[1]) = (@new, @old);
         }
-    }
 
-    if (@fill_rows) {
-        for ( my $row = $fill_rows[0]; $row <= $fill_rows[1]; $row ++) {
-            draw_visual_highlight ($term, $row, 0, $term->ncol);
-        }
+        $term->scr_xor_span(@old, @new);
     }
 }
 
