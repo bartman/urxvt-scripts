@@ -196,6 +196,11 @@ sub on_key_release {
     if ($mark_mode_active) {
         my $ch = chr($keysym);
 
+        if ($mod & urxvt::ShiftMask && $ch =~ m/[[:alpha:]]/) {
+            $ch = uc $ch;
+            $mod &= ~urxvt::ShiftMask;
+        }
+
         if (!$mod && $keysym == 65307) {                     # <esc>
             deactivate_mark_mode ($term);
             visual_mode_disable ($term, @cursor);
@@ -232,6 +237,23 @@ sub on_key_release {
                 $term->screen_cur (@dest);
                 $term->want_refresh;
             }
+
+        } elsif (($mod & urxvt::ControlMask) && $ch eq 'w') {# w - copy the word under the cursor
+            my ($y1, $x1, $y2, $x2) = (@cursor, @cursor);
+
+	    --$x1 while substr($term->ROW_t($y1), $x1 - 1, 1) =~ m/\w/;
+	    ++$x2 while substr($term->ROW_t($y2), $x2 + 1, 1) =~ m/\w/;
+
+            do_copy($term, $y1, $x1, $y2, $x2);
+
+            deactivate_mark_mode ($term);
+            visual_mode_disable ($term, @cursor);
+
+        } elsif ($ch eq 'Y') {                               # Y - yank from cursor to EOL
+            do_copy($term, @cursor, $cursor[0], $term->ROW_l($cursor[0]) - $cursor[0]);
+
+            deactivate_mark_mode ($term);
+            visual_mode_disable ($term, @cursor);
 
         } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
             my %url = get_active_url ($term);
