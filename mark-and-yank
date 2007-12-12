@@ -50,7 +50,7 @@ sub on_start {
 sub open_url {
     my ($term, $url) = @_;
 
-    $term->exec_async ($term->{browser}), $url);
+    $term->exec_async (split(/[[:blank:]]/, $term->{browser}), $url);
 }
 
 sub on_line_update {
