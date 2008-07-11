@@ -193,236 +193,234 @@ sub on_key_release {
         }
     }
 
-    if ($mark_mode_active) {
-        my $ch = chr($keysym);
+    return () unless ($mark_mode_active);
 
-        if ($mod & urxvt::ShiftMask && $ch =~ m/[[:alpha:]]/) {
-            $ch = uc $ch;
-            $mod &= ~urxvt::ShiftMask;
-        }
+    my $ch = chr($keysym);
 
-        if (!$mod && $keysym == 65307) {                     # <esc>
-            deactivate_mark_mode ($term);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif (!$mod && $keysym == 65293) {                # <enter>
-            my %url = get_active_url($term);
-            my $urltext = $url{url};
-
-            $urltext =~ s/\(["|><&()]\)/\\$1/;
-            open_url($term, $urltext);
-
-            deactivate_mark_mode ($term);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif (!$mod && $keysym == 32) {                   # <space>
-            if ($first_mark_set) {
-                do_copy($term, @visual_start, @cursor);
-
-                deactivate_mark_mode ($term);
-                visual_mode_disable ($term, @cursor);
-            } else {
-
-                $first_mark_set = 1;
-
-                visual_mode_enable ($term, 'v', @cursor);
-            }
-
-        } elsif (!$mod && $ch eq 'o') {                      # o - go to other end of region
-            if ($first_mark_set) {
-                my @dest = @visual_start;
-                @visual_start = @cursor;
-                @cursor = @dest;
-
-                $term->screen_cur (@dest);
-                $term->want_refresh;
-            }
-
-        } elsif (($mod & urxvt::ControlMask) && $ch eq 'w') {# w - copy the word under the cursor
-            my ($y1, $x1, $y2, $x2) = (@cursor, @cursor);
-
-	    --$x1 while substr($term->ROW_t($y1), $x1 - 1, 1) =~ m/\w/;
-	    ++$x2 while substr($term->ROW_t($y2), $x2 + 1, 1) =~ m/\w/;
-
-            do_copy($term, $y1, $x1, $y2, $x2);
-
-            deactivate_mark_mode ($term);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif ($ch eq 'Y') {                               # Y - yank from cursor to EOL
-            do_copy($term, @cursor, $cursor[0], $term->ROW_l($cursor[0]) - $cursor[0]);
-
-            deactivate_mark_mode ($term);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
-            my %url = get_active_url ($term);
-
-            do_copy($term, $url{row}, $url{col_from}, $url{row}, $url{col_to}) if %url;
-
-            deactivate_mark_mode ($term);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
-                                                    # ^n and ^p to cycle list
-            my $dir = ($ch eq 'n') ? 1 : -1;
-            move_url_highlight ($term, $dir);
-            visual_mode_disable ($term, @cursor);
-
-        } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
-                                                    # ^f and ^b to scroll
-            my $ofs = ($ch eq 'f') ? 1 : -1;
-            my $row = $term->view_start + $ofs;
-            $term->view_start ( $row );
-
-        } elsif (!$mod && $ch eq 'h') {                       # left
-            if ($cursor[1] > 0) {
-                visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] - 1]);
-            }
-
-        } elsif (!$mod && $ch eq 'j') {                  # down
-            if ($cursor[0] < $term->nrow) {
-                visual_mode_update ($term, \@cursor, [$cursor[0] + 1, $cursor[1]]);
-            }
-
-        } elsif (!$mod && $ch eq 'k') {                  # up
-            if ($cursor[0] > $term->top_row) {
-                visual_mode_update ($term, \@cursor, [$cursor[0] - 1, $cursor[1]]);
-            }
-
-        } elsif (!$mod && $ch eq 'l') {                  # right
-            if ($cursor[1] < ($term->ncol - 1)) {
-                visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] + 1]);
-            }
-
-        } elsif ($ch eq 'H') {
-            visual_mode_update ($term, \@cursor, [0, $cursor[1]]);
-
-        } elsif ($ch eq 'M') {
-            visual_mode_update ($term, \@cursor, [$term->nrow / 2, $cursor[1]]);
-
-        } elsif ($ch eq 'L') {
-            visual_mode_update ($term, \@cursor, [$term->nrow, $cursor[1]]);
-
-        } elsif ($ch eq '^') {
-            $term->ROW_t($cursor[0]) =~ m/^\s*/;
-            visual_mode_update ($term, \@cursor, [$cursor[0], $+[0]]);
-
-        } elsif ($ch eq '0') {
-            visual_mode_update ($term, \@cursor, [$cursor[0], 0]);
-
-        } elsif ($ch eq '$') {
-            visual_mode_update ($term, \@cursor, [$cursor[0], $term->ROW_l($cursor[0])]);
-
-        } elsif ($ch eq 'g') {
-            $term->view_start(-$term->saveLines);
-            visual_mode_update ($term, \@cursor, [-$term->saveLines, 0]);
-
-        } elsif ($ch eq 'G') {
-            $term->view_start(0);
-            visual_mode_update ($term, \@cursor, [$term->nrow, $term->ROW_l($cursor[0])]);
-
-        } elsif ($ch eq 'w') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\w/;
-            until (substr($line, $dest[1], 1) =~ m/\w/) {
-                ++$dest[1];
-                next if $dest[1] <= $term->ROW_l($dest[0]);
-                ++$dest[0];
-                return 1 if $dest[0] >= $term->nrow;
-                $dest[1] = 0;
-                $line = $term->ROW_t($dest[0]);
-            }
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-
-        } elsif ($ch eq 'e') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            ++$dest[1];
-            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\W/;
-            until (substr($line, $dest[1], 1) =~ m/\w/) {
-                ++$dest[1];
-                next if $dest[1] <= $term->ROW_l($dest[0]);
-                ++$dest[0];
-                return 1 if $dest[0] >= $term->nrow;
-                $dest[1] = 0;
-                $line = $term->ROW_t($dest[0]);
-            }
-            ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\w/;
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-
-        } elsif ($ch eq 'b') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/);
-            until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/) {
-                --$dest[1];
-                next if $dest[1] >= 0;
-                --$dest[0];
-                return 1 if $dest[0] <= 0;
-                $dest[1] = $term->ROW_l($dest[0]);
-                $line = $term->ROW_t($dest[0]);
-            }
-            --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/;
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-
-        } elsif ($ch eq 'W') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\S/;
-            until (substr($line, $dest[1], 1) =~ m/\S/) {
-                ++$dest[1];
-                next if $dest[1] <= $term->ROW_l($dest[0]);
-                ++$dest[0];
-                return 1 if $dest[0] >= $term->nrow;
-                $dest[1] = 0;
-                $line = $term->ROW_t($dest[0]);
-            }
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-
-        } elsif ($ch eq 'E') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            ++$dest[1];
-            ++$dest[1] while substr($line, $dest[1], 1) =~ m/\s/;
-            until (substr($line, $dest[1], 1) =~ m/\S/) {
-                ++$dest[1];
-                next if $dest[1] <= $term->ROW_l($dest[0]);
-                ++$dest[0];
-                return 1 if $dest[0] >= $term->nrow;
-                $dest[1] = 0;
-                $line = $term->ROW_t($dest[0]);
-            }
-            ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\S/;
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-
-        } elsif ($ch eq 'B') {
-	    my @dest = @cursor;
-            my $line = $term->ROW_t($dest[0]);
-            --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/);
-            until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/) {
-                --$dest[1];
-                next if $dest[1] >= 0;
-                --$dest[0];
-                return 1 if $dest[0] <= 0;
-                $dest[1] = $term->ROW_l($dest[0]);
-                $line = $term->ROW_t($dest[0]);
-            }
-            --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/;
-
-	    visual_mode_update ($term, \@cursor, \@dest);
-        }
-
-        return 1;
+    if ($mod & urxvt::ShiftMask && $ch =~ m/[[:alpha:]]/) {
+        $ch = uc $ch;
+        $mod &= ~urxvt::ShiftMask;
     }
 
-    ()
+    if (!$mod && $keysym == 65307) {                     # <esc>
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif (!$mod && $keysym == 65293) {                # <enter>
+        my %url = get_active_url($term);
+        my $urltext = $url{url};
+
+        $urltext =~ s/\(["|><&()]\)/\\$1/;
+        open_url($term, $urltext);
+
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif (!$mod && $keysym == 32) {                   # <space>
+        if ($first_mark_set) {
+            do_copy($term, @visual_start, @cursor);
+
+            deactivate_mark_mode ($term);
+            visual_mode_disable ($term, @cursor);
+        } else {
+
+            $first_mark_set = 1;
+
+            visual_mode_enable ($term, 'v', @cursor);
+        }
+
+    } elsif (!$mod && $ch eq 'o') {                      # o - go to other end of region
+        if ($first_mark_set) {
+            my @dest = @visual_start;
+            @visual_start = @cursor;
+            @cursor = @dest;
+
+            $term->screen_cur (@dest);
+            $term->want_refresh;
+        }
+
+    } elsif (($mod & urxvt::ControlMask) && $ch eq 'w') {# w - copy the word under the cursor
+        my ($y1, $x1, $y2, $x2) = (@cursor, @cursor);
+
+        --$x1 while substr($term->ROW_t($y1), $x1 - 1, 1) =~ m/\w/;
+        ++$x2 while substr($term->ROW_t($y2), $x2 + 1, 1) =~ m/\w/;
+
+        do_copy($term, $y1, $x1, $y2, $x2);
+
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif ($ch eq 'Y') {                               # Y - yank from cursor to EOL
+        do_copy($term, @cursor, $cursor[0], $term->ROW_l($cursor[0]) - $cursor[0]);
+
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif (!$mod && $ch eq 'y') {                      # y - yank selected
+        my %url = get_active_url ($term);
+
+        do_copy($term, $url{row}, $url{col_from}, $url{row}, $url{col_to}) if %url;
+
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif (($mod & urxvt::ControlMask) && (($ch eq 'n') || ($ch eq 'p'))) {
+                                                # ^n and ^p to cycle list
+        my $dir = ($ch eq 'n') ? 1 : -1;
+        move_url_highlight ($term, $dir);
+        visual_mode_disable ($term, @cursor);
+
+    } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
+                                                # ^f and ^b to scroll
+        my $ofs = ($ch eq 'f') ? 1 : -1;
+        my $row = $term->view_start + $ofs;
+        $term->view_start ( $row );
+
+    } elsif (!$mod && $ch eq 'h') {                       # left
+        if ($cursor[1] > 0) {
+            visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] - 1]);
+        }
+
+    } elsif (!$mod && $ch eq 'j') {                  # down
+        if ($cursor[0] < $term->nrow) {
+            visual_mode_update ($term, \@cursor, [$cursor[0] + 1, $cursor[1]]);
+        }
+
+    } elsif (!$mod && $ch eq 'k') {                  # up
+        if ($cursor[0] > $term->top_row) {
+            visual_mode_update ($term, \@cursor, [$cursor[0] - 1, $cursor[1]]);
+        }
+
+    } elsif (!$mod && $ch eq 'l') {                  # right
+        if ($cursor[1] < ($term->ncol - 1)) {
+            visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1] + 1]);
+        }
+
+    } elsif ($ch eq 'H') {
+        visual_mode_update ($term, \@cursor, [0, $cursor[1]]);
+
+    } elsif ($ch eq 'M') {
+        visual_mode_update ($term, \@cursor, [$term->nrow / 2, $cursor[1]]);
+
+    } elsif ($ch eq 'L') {
+        visual_mode_update ($term, \@cursor, [$term->nrow, $cursor[1]]);
+
+    } elsif ($ch eq '^') {
+        $term->ROW_t($cursor[0]) =~ m/^\s*/;
+        visual_mode_update ($term, \@cursor, [$cursor[0], $+[0]]);
+
+    } elsif ($ch eq '0') {
+        visual_mode_update ($term, \@cursor, [$cursor[0], 0]);
+
+    } elsif ($ch eq '$') {
+        visual_mode_update ($term, \@cursor, [$cursor[0], $term->ROW_l($cursor[0])]);
+
+    } elsif ($ch eq 'g') {
+        $term->view_start(-$term->saveLines);
+        visual_mode_update ($term, \@cursor, [-$term->saveLines, 0]);
+
+    } elsif ($ch eq 'G') {
+        $term->view_start(0);
+        visual_mode_update ($term, \@cursor, [$term->nrow, $term->ROW_l($cursor[0])]);
+
+    } elsif ($ch eq 'w') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        ++$dest[1] while substr($line, $dest[1], 1) =~ m/\w/;
+        until (substr($line, $dest[1], 1) =~ m/\w/) {
+            ++$dest[1];
+            next if $dest[1] <= $term->ROW_l($dest[0]);
+            ++$dest[0];
+            return 1 if $dest[0] >= $term->nrow;
+            $dest[1] = 0;
+            $line = $term->ROW_t($dest[0]);
+        }
+
+        visual_mode_update ($term, \@cursor, \@dest);
+
+    } elsif ($ch eq 'e') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        ++$dest[1];
+        ++$dest[1] while substr($line, $dest[1], 1) =~ m/\W/;
+        until (substr($line, $dest[1], 1) =~ m/\w/) {
+            ++$dest[1];
+            next if $dest[1] <= $term->ROW_l($dest[0]);
+            ++$dest[0];
+            return 1 if $dest[0] >= $term->nrow;
+            $dest[1] = 0;
+            $line = $term->ROW_t($dest[0]);
+        }
+        ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\w/;
+
+        visual_mode_update ($term, \@cursor, \@dest);
+
+    } elsif ($ch eq 'b') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/);
+        until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/) {
+            --$dest[1];
+            next if $dest[1] >= 0;
+            --$dest[0];
+            return 1 if $dest[0] <= 0;
+            $dest[1] = $term->ROW_l($dest[0]);
+            $line = $term->ROW_t($dest[0]);
+        }
+        --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/;
+
+        visual_mode_update ($term, \@cursor, \@dest);
+
+    } elsif ($ch eq 'W') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        ++$dest[1] while substr($line, $dest[1], 1) =~ m/\S/;
+        until (substr($line, $dest[1], 1) =~ m/\S/) {
+            ++$dest[1];
+            next if $dest[1] <= $term->ROW_l($dest[0]);
+            ++$dest[0];
+            return 1 if $dest[0] >= $term->nrow;
+            $dest[1] = 0;
+            $line = $term->ROW_t($dest[0]);
+        }
+
+        visual_mode_update ($term, \@cursor, \@dest);
+
+    } elsif ($ch eq 'E') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        ++$dest[1];
+        ++$dest[1] while substr($line, $dest[1], 1) =~ m/\s/;
+        until (substr($line, $dest[1], 1) =~ m/\S/) {
+            ++$dest[1];
+            next if $dest[1] <= $term->ROW_l($dest[0]);
+            ++$dest[0];
+            return 1 if $dest[0] >= $term->nrow;
+            $dest[1] = 0;
+            $line = $term->ROW_t($dest[0]);
+        }
+        ++$dest[1] while substr($line, $dest[1] + 1, 1) =~ m/\S/;
+
+        visual_mode_update ($term, \@cursor, \@dest);
+
+    } elsif ($ch eq 'B') {
+        my @dest = @cursor;
+        my $line = $term->ROW_t($dest[0]);
+        --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/);
+        until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/) {
+            --$dest[1];
+            next if $dest[1] >= 0;
+            --$dest[0];
+            return 1 if $dest[0] <= 0;
+            $dest[1] = $term->ROW_l($dest[0]);
+            $line = $term->ROW_t($dest[0]);
+        }
+        --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/;
+
+        visual_mode_update ($term, \@cursor, \@dest);
+    }
+
+    return 1;
 }
 
 # ------------------------------------------------------------------------
