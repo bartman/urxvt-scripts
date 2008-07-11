@@ -27,6 +27,9 @@
 #
 # ------------------------------------------------------------------------
 
+use List::Util qw(first max maxstr min minstr reduce shuffle sum);
+
+
 # same url as used in "selection"
 my $url_matcher =
    qr{(
@@ -41,6 +44,8 @@ sub canonicalise_coordinates {
         (@_);
     }
 }
+
+sub clamp { min( max( $_[0], $_[1] ), $_[2] ) }
 
 sub on_start {
     my ($term) = @_;
@@ -294,8 +299,7 @@ sub on_key_release {
     } elsif (($mod & urxvt::ControlMask) && (($ch eq 'f') || ($ch eq 'b'))) {
                                                 # ^f and ^b to scroll
         my $ofs = ($ch eq 'f') ? 1 : -1;
-        my $row = $term->view_start + $ofs;
-        $term->view_start ( $row );
+        visual_mode_update ($term, \@cursor, [$cursor[0] + $ofs*($term->nrow - 1), $cursor[1]]);
 
     } elsif (!$mod && $ch eq 'h') {                       # left
         if ($cursor[1] > 0) {
@@ -537,19 +541,19 @@ sub visual_mode_update {
 
     @cursor = @new;
 
+    $cursor[0] = clamp $term->top_row, $cursor[0], $term->nrow - 1;
+
     if ($visual_mode eq 'v') {
         $term->scr_xor_span(canonicalise_coordinates(@old, @new));
     }
 
     $term->screen_cur (@cursor);
-    $term->want_refresh;
 
-    my $row = $term->view_start;
-    if ($cursor[0] < $row) {
-        $term->view_start ( $row - 1 );
-    } elsif ($cursor[1] > ($row + $term->nrow)) {
-        $term->view_start ( $row + 1 );
-    }
+    $term->view_start (clamp $cursor[0] - $term->nrow + 1,
+                             $term->view_start,
+                             min 0, $cursor[0]);
+
+    $term->want_refresh;
 }
 
 # ------------------------------------------------------------------------
