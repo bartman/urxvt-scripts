@@ -524,7 +524,7 @@ sub visual_mode_disable {
     my ($term, @cursor) = @_;
 
     if ($visual_mode) {
-        $term->scr_xor_span(@visual_start, @cursor);
+        $term->scr_xor_span(canonicalise_coordinates(@visual_start, @cursor));
 
         $visual_mode = 0;
 
