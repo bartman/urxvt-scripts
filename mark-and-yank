@@ -137,7 +137,6 @@ sub do_scan_for_urls {
 
         # find all urls (if any)
         while ($text =~ /$url_matcher/g) {
-            my $rend = $line->r;
             my $url = $1;
 
             my %h = ( 'row'      => $row,
