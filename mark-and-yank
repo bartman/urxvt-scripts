@@ -340,8 +340,7 @@ sub on_key_release {
         visual_mode_update ($term, \@cursor, [$term->top_row, 0]);
 
     } elsif ($ch eq 'G') {
-        $term->view_start(0);
-        visual_mode_update ($term, \@cursor, [$term->nrow, $term->ROW_l($cursor[0])]);
+        visual_mode_update ($term, \@cursor, [$term->nrow - 1, $term->ROW_l($term->nrow - 1) - 1]);
 
     } elsif ($ch eq 'w') {
         my @dest = @cursor;
