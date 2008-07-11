@@ -337,8 +337,7 @@ sub on_key_release {
         visual_mode_update ($term, \@cursor, [$cursor[0], $term->ROW_l($cursor[0]) - 1]);
 
     } elsif ($ch eq 'g') {
-        $term->view_start(-$term->saveLines);
-        visual_mode_update ($term, \@cursor, [-$term->saveLines, 0]);
+        visual_mode_update ($term, \@cursor, [$term->top_row, 0]);
 
     } elsif ($ch eq 'G') {
         $term->view_start(0);
