@@ -207,14 +207,28 @@ sub on_key_release {
         visual_mode_disable ($term, @cursor);
 
     } elsif (!$mod && $keysym == 65293) {                # <enter>
-        my %url = get_active_url($term);
-        my $urltext = $url{url};
+        if ($first_mark_set) {
+            do_copy($term, @visual_start, @cursor);
 
-        $urltext =~ s/\(["|><&()]\)/\\$1/;
-        open_url($term, $urltext);
+            deactivate_mark_mode ($term);
+            visual_mode_disable ($term, @cursor);
+        } else {
+            my %url = get_active_url($term);
 
-        deactivate_mark_mode ($term);
-        visual_mode_disable ($term, @cursor);
+            if (not %url) {
+                $first_mark_set = 1;
+
+                visual_mode_enable ($term, 'v', @cursor);
+            } else {
+                my $urltext = $url{url};
+
+                $urltext =~ s/\(["|><&()]\)/\\$1/;
+                open_url($term, $urltext);
+
+                deactivate_mark_mode ($term);
+                visual_mode_disable ($term, @cursor);
+            }
+        }
 
     } elsif (!$mod && $keysym == 32) {                   # <space>
         if ($first_mark_set) {
