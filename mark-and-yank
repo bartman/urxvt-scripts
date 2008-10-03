@@ -50,6 +50,11 @@ sub clamp { min( max( $_[0], $_[1] ), $_[2] ) }
 sub on_start {
     my ($term) = @_;
 
+    $term->{have_Clipboard} = eval { require Clipboard; };
+    if ($term->{have_Clipboard}) {
+        import Clipboard;
+    }
+
     $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
 
     ()
@@ -466,6 +471,17 @@ sub do_copy {
     $term->selection_beg($y1, $x1);
     $term->selection_end($y2, 1 + $x2);
     $term->selection_make(urxvt::CurrentTime);
+
+    my $text = $term->selection();
+    $text =~ s/\\/\\\\/g;
+    $text =~ s/"/\\"/g;
+
+    if ($term->{have_Clipboard}) {
+        Clipboard->copy($text);
+    } else {
+        $text =~ s/\(["|><&()]\)/\\$1/;
+        system ("echo -n \"$text\" | xclip -i");
+    }
 }
 
 # ------------------------------------------------------------------------
