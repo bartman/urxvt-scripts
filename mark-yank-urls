@@ -6,7 +6,10 @@
 use strict;
 use warnings;
 
-use Regexp::Common qw( URI );
+my $url_matcher = qr{(
+	(?:https?://|ftp://|news://|mailto:|file://)[ab-zA-Z0-9\-\@;\/?:&=%\$_.+!*\x27(),~#]+
+	[ab-zA-Z0-9\-\@;\/?:&=%\$_+!*\x27()~]   # exclude some trailing characters (heuristic)
+)}x;
 
 
 sub on_start {
@@ -16,6 +19,14 @@ sub on_start {
     if ($term->{have_Clipboard}) {
         import Clipboard;
     }
+
+	eval { require Regexp::Common::URI };
+	if(!$@) {
+		require Regexp::Common;
+		Regexp::Common->import('URI');
+
+		$url_matcher = $Regexp::Common::RE{URI}{HTTP};
+	}
 
     $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
 
@@ -30,7 +41,7 @@ sub on_line_update {
     my $text = $line->t;
 
     # Find and underline URLs.
-    while ($text =~ /($RE{URI}{HTTP})/g) {
+    while ($text =~ /($url_matcher)/g) {
         my $rend = $line->r;
 
 		# Mark all characters as underlined. we _must_ not toggle underline, as
@@ -63,7 +74,7 @@ sub on_button_release {
         my $line = $term->line ($row);
         my $text = $line->t;
 
-        while ($text =~ /($RE{URI}{HTTP})/g) {
+        while ($text =~ /($url_matcher)/g) {
             my ($url, $first, $last) = ($1, $-[1], $+[1]);
 
             if($first <= $col && $last >= $col) {
@@ -99,7 +110,7 @@ sub do_scan_for_urls {
         my $text = $line->t;
 
         # Find all urls (if any).
-        while ($text =~ /($RE{URI}{HTTP})/g) {
+        while ($text =~ /($url_matcher)/g) {
             my $rend = $line->r;
 
 			my ($url, $first, $last) = ($1, $-[1], $+[1] - 1);
