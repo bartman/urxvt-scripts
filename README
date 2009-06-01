@@ -4,12 +4,42 @@ Main author
   Bart Trojanowski <bart@jukie.net>
 
 Contributors
+  Miciah Dashiel Butler Masters
+  Nigel McNie
+  Jonas Kramer
+  Olof Johansson
+  Dave O'Neill
+  Hans Dieter Pearcey
+  Daniel Danner
   << your name here >>
+
+mark-yank-urls
+  
+  This script will cycle through URLs in the terminal and let you 
+  copy them (y) or launch a browser (<enter>).
+
+  This script is known to be working, but is likely not bug-free.
+
+  NOTES:
+    apt-get install rxvt-unicode xclip git-core
+    git clone git://git.jukie.net/urxvt.git/ urxvt.git
+    mkdir -p ~/.urxvt
+    cp urxvt.git/mark-yank-urls ~/.urxvt
+
+    cat > ~/.Xdefaults <<END
+URxvt.keysym.M-u: perl:mark-yank-urls:activate_mark_mode
+URxvt.reverseVideo: true
+URxvt.perl-lib: /home/jukie/bart/.urxvt/
+URxvt.perl-ext: selection
+URxvt.perl-ext: mark-yank-urls
+END
 
 mark-and-yank
 
   This is a general purpose block copy script.  It completely replaces
   the mark-yank-urls script.
+
+  WARNING, there are still many bugs in this script.
 
   NOTES:
     apt-get install rxvt-unicode xclip git-core
@@ -30,23 +60,4 @@ END
     - whole screen capture
     - b,e,w,W,gg,G for movement
 
-
-mark-yank-urls
-  
-  This script will cycle through URLs in the terminal and let you 
-  copy them (y) or launch a browser (<enter>).
-
-  NOTES:
-    apt-get install rxvt-unicode xclip git-core
-    git clone git://git.jukie.net/urxvt.git/ urxvt.git
-    mkdir -p ~/.urxvt
-    cp urxvt.git/mark-yank-urls ~/.urxvt
-
-    cat > ~/.Xdefaults <<END
-URxvt.keysym.M-u: perl:mark-yank-urls:activate_mark_mode
-URxvt.reverseVideo: true
-URxvt.perl-lib: /home/jukie/bart/.urxvt/
-URxvt.perl-ext: selection
-URxvt.perl-ext: mark-yank-urls
-END
 
