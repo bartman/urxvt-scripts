@@ -144,8 +144,13 @@ sub on_user_command {
 sub on_key_press {
     my ($term, $event, $keysym, $octets) = @_;
 
-	$mod{control} = ($keysym == 65507);
-	$mod{shift} = ($keysym == 65505);
+    if ($keysym == 65507) {                     # <control>
+        $mod{control} = 1;
+
+    } elsif ($keysym == 65505) {                # <shift>
+        $mod{shift} = 1;
+
+    }
 
     # Ignore all input when we are active.
     $mark_mode_active && return 1;
