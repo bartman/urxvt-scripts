@@ -2,13 +2,13 @@
 # ------------------------------------------------------------------------
 # Author: Bart Trojanowski <bart@jukie.net>
 #
-# This script intends to provide functionality similar to screen's 
+# This script intends to provide functionality similar to screen's
 # copy-mode, but instead copy to the X clipboard.  In order to copy to
 # the clipboard we need either the Clipboard.pm from CPAN or the xclip
 # command line utility.
 #
 # More details here: http://www.jukie.net/~bart/blog/tag/urxvt
-# 
+#
 # This script is based on the mark-urls script from the rxvt-unicode
 # distribution.
 #
@@ -129,6 +129,7 @@ my $mod = 0;
 #my %mod = ( 'control' => 0, 'shift' => 0 );
 
 my $mark_mode_active = 0;
+my $rectangle_mode = 0;
 my @backup_cursor = ();
 my @visual_start = ();
 my $visual_mode = 0;        # 'v', 'V', or '^v'
@@ -159,7 +160,7 @@ sub do_scan_for_urls {
             my $url = $1;
 
             my %h = ( 'row'      => $row,
-                      'col_from' => $-[1], 
+                      'col_from' => $-[1],
                       'col_to'   => $+[1] - 1,
                       'url'      => $url);
             push @url_db, \%h;
@@ -291,6 +292,18 @@ sub on_key_release {
             $term->screen_cur (@dest);
             $term->want_refresh;
         }
+
+    } elsif (!$mod && $ch eq 'r') {                      # r - toggle rectangular mode
+        # Change highlighting
+        if ( $rectangle_mode ) {
+            $term->scr_xor_rect(canonicalise_coordinates(@visual_start, @cursor));
+            $term->scr_xor_span(canonicalise_coordinates(@visual_start, @cursor));
+        } else {
+            $term->scr_xor_span(canonicalise_coordinates(@visual_start, @cursor));
+            $term->scr_xor_rect(canonicalise_coordinates(@visual_start, @cursor));
+        }
+        $rectangle_mode = !$rectangle_mode;
+        visual_mode_update ($term, \@cursor, [$cursor[0], $cursor[1]]);
 
     } elsif (($mod & urxvt::ControlMask) && $ch eq 'w') {# w - copy the word under the cursor
         my ($y1, $x1, $y2, $x2) = (@cursor, @cursor);
@@ -496,7 +509,7 @@ sub do_copy {
 
     $term->selection_beg($y1, $x1);
     $term->selection_end($y2, 1 + $x2);
-    $term->selection_make(urxvt::CurrentTime);
+    $term->selection_make(urxvt::CurrentTime, $rectangle_mode);
 
     my $text = $term->selection();
     $text =~ s/\\/\\\\/g;
@@ -520,9 +533,9 @@ sub move_url_highlight {
     my $max = $#url_db + 1;
 
     do_highlight ($term, 0);
-    
+
     $url_selected = ($max + $url_selected + $dir) % $max;
-        
+
     do_highlight ($term, 1);
 
     $term->want_refresh;
@@ -571,7 +584,11 @@ sub visual_mode_disable {
     my ($term, @cursor) = @_;
 
     if ($visual_mode) {
-        $term->scr_xor_span(canonicalise_coordinates(@visual_start, @cursor));
+        if ( $rectangle_mode ) {
+            $term->scr_xor_rect(canonicalise_coordinates(@visual_start, @cursor));
+        } else {
+            $term->scr_xor_span(canonicalise_coordinates(@visual_start, @cursor));
+        }
 
         $visual_mode = 0;
 
@@ -589,7 +606,12 @@ sub visual_mode_update {
     $cursor[0] = clamp $term->top_row, $cursor[0], $term->nrow - 1;
 
     if ($visual_mode eq 'v') {
-        $term->scr_xor_span(canonicalise_coordinates(@old, @new));
+        if ( $rectangle_mode ) {
+            $term->scr_xor_rect(canonicalise_coordinates(@visual_start, @old));
+            $term->scr_xor_rect(canonicalise_coordinates(@visual_start, @new));
+        } else {
+            $term->scr_xor_span(canonicalise_coordinates(@old, @new));
+        }
     }
 
     $term->screen_cur (@cursor);
