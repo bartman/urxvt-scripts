@@ -42,12 +42,13 @@ sub on_line_update {
 
     # Find and underline URLs.
     while ($text =~ /($url_matcher)/g) {
+        my $url = $1;
         my $rend = $line->r;
 
-		# Mark all characters as underlined. we _must_ not toggle underline, as
-		# we might get called on an already-marked URL.
-        if($term->x_resource ('underlineURLs') eq 'true') {
-			my $url = $1;
+        # Mark all characters as underlined. we _must_ not toggle underline, as
+        # we might get called on an already-marked URL.
+        my $underlineURLs = $term->x_resource ('underlineURLs') || 'false';
+        if($underlineURLs eq 'true') {
 			my ($first, $last) = ($-[1], $+[1] - 1);
 
 			--$last if $url =~ s/["']$//;
