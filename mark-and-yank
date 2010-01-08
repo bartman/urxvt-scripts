@@ -386,16 +386,20 @@ sub on_key_release {
     } elsif ($ch eq 'b') {
         my @dest = @cursor;
         my $line = $term->ROW_t($dest[0]);
+        # unless at the beginning of a word, jump to the beginning
         --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/);
-        until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/) {
-            --$dest[1];
-            next if $dest[1] >= 0;
-            --$dest[0];
-            return 1 if $dest[0] <= 0;
-            $dest[1] = $term->ROW_l($dest[0]);
-            $line = $term->ROW_t($dest[0]);
+        if ($dest[1] == $cursor[1]) { # at beginning of a word
+            # skip non-word characters
+            until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/) {
+                --$dest[1];
+                next if $dest[1] > 0;
+                --$dest[0];
+                return 1 if $dest[0] < 0;
+                $dest[1] = $term->ROW_l($dest[0]);
+                $line = $term->ROW_t($dest[0]);
+            }
+            --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/;
         }
-        --$dest[1] while $dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\w/;
 
         visual_mode_update ($term, \@cursor, \@dest);
 
