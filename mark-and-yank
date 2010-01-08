@@ -223,6 +223,10 @@ sub on_key_release {
         deactivate_mark_mode ($term);
         visual_mode_disable ($term, @cursor);
 
+    } elsif (($mod & urxvt::ControlMask) && $ch eq 'c') {# ^c - abort
+        deactivate_mark_mode ($term);
+        visual_mode_disable ($term, @cursor);
+
     } elsif (!$mod && $keysym == 65293) {                # <enter>
         if ($first_mark_set) {
             do_copy($term, @visual_start, @cursor);
