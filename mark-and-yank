@@ -441,9 +441,9 @@ sub on_key_release {
         --$dest[1] while ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/);
         until ($dest[1] >= 1 && substr($line, $dest[1] - 1, 1) =~ m/\S/) {
             --$dest[1];
-            next if $dest[1] >= 0;
+            next if $dest[1] > 0;
             --$dest[0];
-            return 1 if $dest[0] <= 0;
+            return 1 if $dest[0] < 0;
             $dest[1] = $term->ROW_l($dest[0]);
             $line = $term->ROW_t($dest[0]);
         }
