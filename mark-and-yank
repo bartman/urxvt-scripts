@@ -136,6 +136,7 @@ my @cursor = ();
 my $url_selected = -1;
 my @url_db = ();
 my $first_mark_set = 0;
+my $msg_timeout = 2;
 
 # ------------------------------------------------------------------------
 
@@ -169,6 +170,21 @@ sub do_scan_for_urls {
     return $#url_db + 1;
 }
 
+sub status_message {
+   my ($self, $text, $timeout) = @_;
+   $timeout = $msg_timeout unless defined $timeout;
+   $self->{msg} = {
+      ov => $self->overlay (0, -1, length($text)+1, 1, urxvt::OVERLAY_RSTYLE, 1),
+      to => urxvt::timer
+        ->new
+        ->start (urxvt::NOW + $timeout)
+        ->cb (sub {
+                delete $self->{msg};
+              }),
+   };
+   $self->{msg}{ov}->set(0,0,$text);
+}
+
 sub on_user_command {
     my ($term, $cmd) = @_;
 
@@ -178,6 +194,8 @@ sub on_user_command {
     } elsif ($cmd eq "mark-and-yank:activate_mark_url_mode") {
         activate_mark_url_mode($term);
     }
+
+    status_message ($term, "urxvt copy mode started");
 
     ()
 }
@@ -490,6 +508,8 @@ sub do_copy {
         $text =~ s/\(["|><&()]\)/\\$1/;
         system ("echo -n \"$text\" | xclip -i");
     }
+
+    status_message ($term, "copied ".length($text)." characters into clipboard");
 }
 
 # ------------------------------------------------------------------------
