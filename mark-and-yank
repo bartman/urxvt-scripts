@@ -505,8 +505,9 @@ sub do_copy {
     if ($term->{have_Clipboard}) {
         Clipboard->copy($text);
     } else {
-        $text =~ s/\(["|><&()]\)/\\$1/;
-        system ("echo -n \"$text\" | xclip -i");
+        my $pid = open(XCLIP, "|xclip -i");
+        print XCLIP $text;
+        close(XCLIP)
     }
 
     status_message ($term, "copied ".length($text)." characters into clipboard");
