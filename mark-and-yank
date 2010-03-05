@@ -499,8 +499,6 @@ sub do_copy {
     $term->selection_make(urxvt::CurrentTime);
 
     my $text = $term->selection();
-    $text =~ s/\\/\\\\/g;
-    $text =~ s/"/\\"/g;
 
     if ($term->{have_Clipboard}) {
         Clipboard->copy($text);
