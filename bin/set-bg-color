@@ -1,0 +1,3 @@
+#!/bin/bash
+color=$1
+echo -en "\033]39;$color\007"
