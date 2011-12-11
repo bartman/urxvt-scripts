@@ -35,8 +35,7 @@ mark-yank-urls
 URxvt.keysym.M-u: perl:mark-yank-urls:activate_mark_mode
 URxvt.reverseVideo: true
 URxvt.perl-lib: /home/jukie/bart/.urxvt/
-URxvt.perl-ext: selection
-URxvt.perl-ext: mark-yank-urls
+URxvt.perl-ext: selection,mark-yank-urls
 END
 
 mark-and-yank
