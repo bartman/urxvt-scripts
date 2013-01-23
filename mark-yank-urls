@@ -8,7 +8,10 @@ use warnings;
 
 my $url_matcher = qr{(
     \b
-    [a-z][a-z0-9+]+://               # scheme
+    (?:
+      [a-z][a-z0-9+]+://  |          # scheme
+      www\.                          # or www. subdomain
+    )
     [\[\]a-z0-9\@:;.-]*              # hostname
     (?:
      /[a-z0-9.,:;~\@?\$\&()/=#%+!*_-]*  # path (and query string etc)
@@ -31,6 +34,8 @@ sub scheme {
 sub get_handler {
     my $uri = shift;
     my $scheme = scheme($uri);
+
+    $scheme = 'http' if not $scheme and $uri =~ /^www\./;
     return $handlers{$scheme};
 }
 
