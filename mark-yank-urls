@@ -16,6 +16,23 @@ my $url_matcher = qr{(
     (?<![.,;:?!])        # exclude some trailing characters (heuristic)
 )}xi;
 
+my %handlers = (
+    http  => 'x-www-browser',
+    https => 'x-www-browser',
+    ftp   => 'x-www-browser',
+);
+
+sub scheme {
+    my $uri = shift;
+    my ($scheme) = $uri =~ m|^([^:]+)://|;
+    return $scheme;
+}
+
+sub get_handler {
+    my $uri = shift;
+    my $scheme = scheme($uri);
+    return $handlers{$scheme};
+}
 
 sub on_start {
     my ($term) = @_;
@@ -25,15 +42,11 @@ sub on_start {
         import Clipboard;
     }
 
-	eval { require Regexp::Common::URI };
-	if(!$@) {
-		require Regexp::Common;
-		Regexp::Common->import('URI');
-
-		$url_matcher = $Regexp::Common::RE{URI}{HTTP};
-	}
-
-    $term->{browser} = $term->x_resource ("urlLauncher") || "x-www-browser";
+    if (my $browser = $term->x_resource ('urlLauncher')) {
+        $handlers{http} = $browser;
+        $handlers{https} = $browser;
+        $handlers{ftp} = $browser;
+    }
 
     ()
 }
@@ -82,10 +95,11 @@ sub on_button_release {
 
         while ($text =~ /($url_matcher)/g) {
             my ($url, $first, $last) = ($1, $-[1], $+[1]);
+            my $handler = get_handler{$url};
 
-            if($first <= $col && $last >= $col) {
+            if($handler and $first <= $col && $last >= $col) {
                 $url =~ s/["']$//;
-                $term->exec_async($term->{browser}, $url);
+                $term->exec_async($handler, $url);
                 return 1;
             }
         }
@@ -176,7 +190,8 @@ sub on_key_release {
 
         } elsif ($keysym == 65293) {                # <enter>
             my $url = get_active_url($term);
-            $term->exec_async($term->{browser}, $url);
+            my $handler = get_handler($url);
+            $term->exec_async($handler, $url) if $handler;
             deactivate_mark_mode ($term);
             return 1;
 
