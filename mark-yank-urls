@@ -11,6 +11,13 @@ my $url_matcher = qr{(
         [ab-zA-Z0-9\-\@;\/?&=%\$_+!*\x27()~]   # exclude some trailing characters (heuristic)
 )}x;
 
+# alternative URL matcher submitted by worn_mind to handle URLs with non-latin alphabet;
+# not tested by me :-)
+my $intl_url_matcher = qr{(
+        (?:https?://|ftp://|news://|mailto:|file://|www\.)[\w0-9|\-\@;\/?:&=%\$.+!*\x27(),~#]+
+        [\w0-9|\-\@;\/?&=%\$+!*\x27()~]   # exclude some trailing characters (heuristic)
+)}x;
+
 
 sub on_start {
     my ($term) = @_;
