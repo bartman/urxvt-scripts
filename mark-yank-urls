@@ -100,7 +100,7 @@ sub on_button_release {
 
         while ($text =~ /($url_matcher)/g) {
             my ($url, $first, $last) = ($1, $-[1], $+[1]);
-            my $handler = get_handler{$url};
+            my $handler = get_handler($url);
 
             if($handler and $first <= $col && $last >= $col) {
                 $url =~ s/["']$//;
